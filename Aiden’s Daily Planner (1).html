@@ -15,9 +15,9 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:"Inter Tight",s
 main{max-width:1100px;margin:0 auto;padding:24px 16px 56px;display:grid;gap:16px;grid-template-columns:1fr}
 @media(min-width:880px){
   main{grid-template-columns:1.1fr .9fr;gap:20px;padding-top:40px}
-  .summary,.hero,.calendar{grid-column:1/-1}
+  .summary,.hero,.calendar,.settings{grid-column:1/-1}
   .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:32px}
-  .plan,.journal{align-self:start}
+  main>.card{align-self:start}
 }
 .card{background:var(--card);border-radius:24px;padding:26px}
 h1{font-family:Archivo,"Helvetica Neue",Arial,sans-serif;font-weight:800;font-size:clamp(2.4rem,7vw,4.6rem);line-height:.98;letter-spacing:-.03em;margin:0 0 18px}
@@ -83,6 +83,20 @@ li.done .txt{color:var(--dim);text-decoration:line-through}
 .calwrap{display:grid;gap:28px}
 @media(min-width:760px){.calwrap{grid-template-columns:1.25fr 1fr}}
 .calwrap h3{font-family:Archivo,"Helvetica Neue",Arial,sans-serif;font-weight:800;font-size:1.15rem;margin:0 0 12px}
+select{font:inherit;color:var(--text);background:var(--raise);border:1px solid var(--line);border-radius:12px;padding:10px 8px;min-width:0;flex:none}
+.sels select{flex:1}
+.wkmood{display:flex;gap:6px;flex-wrap:wrap;margin-top:18px}
+.wm{padding:5px 10px;border-radius:999px;font-size:.85rem;color:var(--muted);background:var(--raise)}
+.txt .bar{margin:8px 0 0}
+.tbtns .clear{margin:0}
+[data-theme=charcoal]{--bg:#161616;--card:#000;--raise:#1a1a1a;--line:#262626}
+[data-theme=light]{color-scheme:light;--bg:#cfcfcf;--card:#f3f3f3;--raise:#e3e3e3;--line:#d2d2d2;--text:#111;--muted:#666;--dim:#999}
+[data-theme=light] .go,[data-theme=light] .day.sel,[data-theme=light] .mood[aria-pressed=true],[data-theme=light] li.done .chk,[data-theme=light] .bar i{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+[data-theme=light] .clock{color:#333}
+[data-theme=light] .day i{background:#555}
+[data-theme=light] .day.sel i{background:#fff}
+[data-theme=light] .day:hover,[data-theme=light] .navbtn:hover,[data-theme=light] .del:hover{background:#d8d8d8}
+[data-theme=light] :focus-visible{outline-color:#111}
 :focus-visible{outline:2px solid #fff;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
@@ -128,6 +142,7 @@ li.done .txt{color:var(--dim);text-decoration:line-through}
           <div class="row">
             <input id="evText" type="text" placeholder="Add an event" aria-label="Event" maxlength="120">
             <input id="evTime" type="time" aria-label="Time (optional)">
+            <select id="evRep" aria-label="Repeat"><option value="">Once</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
           </div>
           <button class="go" id="evAdd" type="button">Add to calendar</button>
         </div>
@@ -146,7 +161,9 @@ li.done .txt{color:var(--dim);text-decoration:line-through}
         <input id="task" type="text" placeholder="Add a task" aria-label="Task" maxlength="120">
         <input id="time" type="time" aria-label="Time (optional)">
       </div>
+      <div class="row sels"><select id="pri" aria-label="Priority"><option value="1">High</option><option value="2" selected>Medium</option><option value="3">Low</option></select><select id="cat" aria-label="Category"><option>Work</option><option>Personal</option><option>Other</option></select><select id="rep" aria-label="Repeat"><option value="">No repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option></select></div>
       <button class="go" id="addBtn" type="button">Add task</button>
+      <select id="filt" aria-label="Filter by category"><option value="">All categories</option><option>Work</option><option>Personal</option><option>Other</option></select>
     </div>
     <ul id="list"></ul>
     <p class="empty" id="empty" hidden>Nothing planned yet. Add your first task above.</p>
@@ -162,8 +179,49 @@ li.done .txt{color:var(--dim);text-decoration:line-through}
       <button class="go" id="jsave" type="button">Save entry</button>
       <small>Ctrl or Cmd + Enter also saves</small>
     </div>
+    <div class="wkmood" id="wkmood" aria-label="Mood this week"></div>
+    <input id="jsearch" type="search" placeholder="Search entries or a mood" aria-label="Search journal" style="margin-top:14px">
     <div class="entries" id="entries"></div>
     <p class="empty" id="jempty">No entries yet. Your first one will show up here.</p>
+  </section>
+
+  <section class="card" aria-labelledby="hh">
+    <h2 id="hh">Habits</h2>
+    <p class="count">Check off today’s habits and keep your streak going.</p>
+    <div class="row" style="margin-bottom:12px"><input id="hName" type="text" placeholder="New habit (water, workout…)" aria-label="New habit" maxlength="60"><button class="go" id="hAdd" type="button">Add</button></div>
+    <ul id="habList"></ul>
+    <p class="empty" id="habEmpty">No habits yet.</p>
+  </section>
+
+  <section class="card" aria-labelledby="gh">
+    <h2 id="gh">Goals</h2>
+    <p class="count">Set a target and tap + as you make progress.</p>
+    <div class="row" style="margin-bottom:12px"><input id="gText" type="text" placeholder="Goal (read 4 books)" aria-label="Goal" maxlength="80"><input id="gTarget" type="number" min="1" placeholder="Target" aria-label="Target" style="width:6.5rem;flex:none"><button class="go" id="gAdd" type="button">Add</button></div>
+    <ul id="goalList"></ul>
+    <p class="empty" id="goalEmpty">No goals yet.</p>
+  </section>
+
+  <section class="card" aria-labelledby="th">
+    <h2 id="th">Focus timer</h2>
+    <p class="clock" id="tdisp" style="font-size:3rem;margin:10px 0">25:00</p>
+    <div class="row tbtns" id="tpre" style="margin-bottom:12px"></div>
+    <div class="row tbtns"><button class="go" id="tStart" type="button">Start</button><button class="clear" id="tReset" type="button">Reset</button></div>
+    <p class="count" id="tmsg" style="margin-top:12px"></p>
+  </section>
+
+  <section class="card" aria-labelledby="nh">
+    <h2 id="nh">Quick notes</h2>
+    <p class="count">A scratchpad for ideas that aren’t tasks yet. It saves as you type.</p>
+    <textarea id="notes" aria-label="Quick notes" style="min-height:150px"></textarea>
+  </section>
+
+  <section class="card settings" aria-labelledby="sth">
+    <h2 id="sth">Theme and backup</h2>
+    <div class="moods" id="themes" role="group" aria-label="Theme"></div>
+    <p class="count">Export puts all your data in the box as text. Paste it into the box on another device and press Import.</p>
+    <textarea id="bk" aria-label="Backup data" style="min-height:80px"></textarea>
+    <div class="row" style="margin-top:10px"><button class="go" id="bkExp" type="button">Export</button><button class="go" id="bkImp" type="button">Import</button></div>
+    <p class="count" id="bkmsg" style="margin:10px 0 0"></p>
   </section>
 </main>
 
@@ -209,6 +267,7 @@ var todos=load(TK),entries=load(JK),mood="";
 function fmt(t){if(!t)return"";var a=t.split(":"),h=+a[0];return(h%12||12)+":"+a[1]+" "+(h<12?"AM":"PM")}
 function sorted(){return todos.slice().sort(function(a,b){
   if(a.done!==b.done)return a.done?1:-1;
+  if((a.pri||2)!==(b.pri||2))return (a.pri||2)-(b.pri||2);
   var ta=a.time||"99:99",tb=b.time||"99:99";
   return ta<tb?-1:ta>tb?1:a.id-b.id;
 })}
@@ -226,17 +285,20 @@ function summary(){
   $("sMood").textContent=m?m.mood:"—";
 }
 function renderTodos(){
+  var tk=ymd(new Date());
+  todos.forEach(function(t){if(t.done&&t.rep&&t.dd){var n=Math.round((parse(tk)-parse(t.dd))/864e5);if(t.rep==="daily"?n>=1:n>=7)t.done=false}});
   var list=$("list");list.textContent="";
-  sorted().forEach(function(t){
+  var fv=$("filt").value;
+  sorted().filter(function(t){return !fv||t.cat===fv}).forEach(function(t){
     var li=document.createElement("li");if(t.done)li.className="done";
     var c=document.createElement("button");c.type="button";c.className="chk";
     c.setAttribute("aria-label",(t.done?"Mark not done: ":"Mark done: ")+t.text);
     c.setAttribute("aria-pressed",t.done?"true":"false");
     c.textContent=t.done?"✓":"";
-    c.onclick=function(){t.done=!t.done;store(TK,todos);renderTodos()};
+    c.onclick=function(){t.done=!t.done;t.dd=ymd(new Date());store(TK,todos);renderTodos()};
     var s=document.createElement("span");s.className="txt";s.textContent=t.text;
     li.appendChild(c);li.appendChild(s);
-    if(t.time){var w=document.createElement("span");w.className="when";w.textContent=fmt(t.time);li.appendChild(w)}
+    var w=document.createElement("span");w.className="when";w.textContent=[["High","Med","Low"][(t.pri||2)-1],t.cat,t.rep,fmt(t.time)].filter(Boolean).join(", ");li.appendChild(w);
     var d=document.createElement("button");d.type="button";d.className="del";d.textContent="×";
     d.setAttribute("aria-label","Delete task: "+t.text);
     d.onclick=function(){todos=todos.filter(function(x){return x!==t});store(TK,todos);renderTodos()};
@@ -251,7 +313,7 @@ function renderTodos(){
 }
 function addTask(){
   var v=$("task").value.trim();if(!v){$("task").focus();return}
-  todos.push({id:Date.now(),text:v,time:$("time").value,done:false});
+  todos.push({id:Date.now(),text:v,time:$("time").value,done:false,pri:+$("pri").value,cat:$("cat").value,rep:$("rep").value});
   $("task").value="";$("time").value="";store(TK,todos);renderTodos();$("task").focus();
 }
 $("addBtn").onclick=addTask;
@@ -266,7 +328,7 @@ MOODS.forEach(function(m){
 });
 function renderEntries(){
   var box=$("entries");box.textContent="";
-  entries.slice().sort(function(a,b){return b.ts-a.ts}).forEach(function(e){
+  entries.filter(function(e){var s=$("jsearch").value.trim().toLowerCase();return !s||e.text.toLowerCase().indexOf(s)>-1||(e.mood||"").toLowerCase()===s}).sort(function(a,b){return b.ts-a.ts}).forEach(function(e){
     var d=new Date(e.ts);
     var el=document.createElement("article");el.className="entry";
     var h=document.createElement("header");
@@ -281,6 +343,7 @@ function renderEntries(){
     el.appendChild(h);el.appendChild(p);box.appendChild(el);
   });
   $("jempty").hidden=entries.length>0;
+  renderWeek();
   summary();
 }
 function saveEntry(){
@@ -300,11 +363,11 @@ var cy=now.getFullYear(),cm=now.getMonth(),sel=ymd(now);
 function renderDay(){
   $("calDay").textContent=parse(sel).toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"});
   var list=$("evList");list.textContent="";
-  var items=events.filter(function(e){return e.date===sel}).sort(function(a,b){
+  var items=events.filter(function(e){return occ(e,sel)}).sort(function(a,b){
     var ta=a.time||"99:99",tb=b.time||"99:99";return ta<tb?-1:ta>tb?1:a.id-b.id});
   items.forEach(function(e){
     var li=document.createElement("li");
-    var s=document.createElement("span");s.className="txt";s.textContent=e.text;li.appendChild(s);
+    var s=document.createElement("span");s.className="txt";s.textContent=e.text+(e.rep?" ("+e.rep+")":"");li.appendChild(s);
     if(e.time){var w=document.createElement("span");w.className="when";w.textContent=fmt(e.time);li.appendChild(w)}
     var d=document.createElement("button");d.type="button";d.className="del";d.textContent="×";
     d.setAttribute("aria-label","Delete event: "+e.text);
@@ -323,7 +386,7 @@ function renderCal(){
     var btn=document.createElement("button");btn.type="button";
     btn.className="day"+(key===t?" today":"")+(key===sel?" sel":"");
     btn.textContent=d;
-    var n=events.filter(function(e){return e.date===key}).length;
+    var n=events.filter(function(e){return occ(e,key)}).length;
     btn.setAttribute("aria-label",new Date(cy,cm,d).toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"})+(n?", "+n+(n===1?" event":" events"):""));
     btn.setAttribute("aria-pressed",key===sel?"true":"false");
     if(n)btn.appendChild(document.createElement("i"));
@@ -334,7 +397,7 @@ function renderCal(){
 }
 function addEvent(){
   var v=$("evText").value.trim();if(!v){$("evText").focus();return}
-  events.push({id:Date.now(),date:sel,text:v,time:$("evTime").value});
+  events.push({id:Date.now(),date:sel,text:v,time:$("evTime").value,rep:$("evRep").value});
   $("evText").value="";$("evTime").value="";store(EK,events);renderCal();$("evText").focus();
 }
 $("evAdd").onclick=addEvent;
@@ -342,6 +405,72 @@ $("evText").addEventListener("keydown",function(e){if(e.key==="Enter")addEvent()
 $("calPrev").onclick=function(){cm--;if(cm<0){cm=11;cy--}renderCal()};
 $("calNext").onclick=function(){cm++;if(cm>11){cm=0;cy++}renderCal()};
 $("calToday").onclick=function(){var n=new Date();cy=n.getFullYear();cm=n.getMonth();sel=ymd(n);renderCal()};
+function occ(e,k){if(e.date===k)return true;if(k<e.date||!e.rep)return false;var a=parse(e.date),b=parse(k);return e.rep==="weekly"?Math.round((b-a)/864e5)%7===0:a.getDate()===b.getDate()}
+function mk(tag,cls,txt){var x=document.createElement(tag);if(cls)x.className=cls;if(txt!==undefined)x.textContent=txt;return x}
+function btn(cls,txt,label,fn){var b=mk("button",cls,txt);b.type="button";b.setAttribute("aria-label",label);b.onclick=fn;return b}
+function renderWeek(){
+  var box=$("wkmood");box.textContent="";
+  for(var i=6;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);
+    var m=entries.filter(function(e){return e.mood&&new Date(e.ts).toDateString()===d.toDateString()}).sort(function(a,b){return b.ts-a.ts})[0];
+    box.appendChild(mk("span","wm",d.toLocaleDateString([],{weekday:"short"})+": "+(m?m.mood:"—")))}
+}
+var HK="aiden-planner-habits",habits=load(HK);
+function streak(h){var n=0,d=new Date();if(!h.days[ymd(d)])d.setDate(d.getDate()-1);while(h.days[ymd(d)]){n++;d.setDate(d.getDate()-1)}return n}
+function renderHab(){
+  var ul=$("habList"),t=ymd(new Date());ul.textContent="";
+  habits.forEach(function(h){
+    var on=!!h.days[t],li=mk("li",on?"done":"");
+    li.appendChild(btn("chk",on?"✓":"","Toggle habit: "+h.name,function(){if(on)delete h.days[t];else h.days[t]=1;store(HK,habits);renderHab()}));
+    li.appendChild(mk("span","txt",h.name));
+    li.appendChild(mk("span","when",streak(h)+" day streak"));
+    li.appendChild(btn("del","×","Delete habit: "+h.name,function(){habits=habits.filter(function(x){return x!==h});store(HK,habits);renderHab()}));
+    ul.appendChild(li);
+  });
+  $("habEmpty").hidden=habits.length>0;
+}
+function addHab(){var v=$("hName").value.trim();if(!v)return;habits.push({id:Date.now(),name:v,days:{}});$("hName").value="";store(HK,habits);renderHab()}
+$("hAdd").onclick=addHab;$("hName").addEventListener("keydown",function(e){if(e.key==="Enter")addHab()});
+var GK="aiden-planner-goals",goals=load(GK);
+function renderGoals(){
+  var ul=$("goalList");ul.textContent="";
+  goals.forEach(function(g){
+    var li=mk("li"),s=mk("span","txt",g.text),b=mk("div","bar"),f=mk("i");
+    f.style.width=Math.min(100,g.n/g.target*100)+"%";b.appendChild(f);s.appendChild(b);
+    li.appendChild(s);li.appendChild(mk("span","when",g.n+" / "+g.target));
+    li.appendChild(btn("navbtn","+","Add progress: "+g.text,function(){g.n++;store(GK,goals);renderGoals()}));
+    li.appendChild(btn("del","×","Delete goal: "+g.text,function(){goals=goals.filter(function(x){return x!==g});store(GK,goals);renderGoals()}));
+    ul.appendChild(li);
+  });
+  $("goalEmpty").hidden=goals.length>0;
+}
+function addGoal(){var v=$("gText").value.trim(),n=parseInt($("gTarget").value,10)||1;if(!v)return;goals.push({id:Date.now(),text:v,target:Math.max(1,n),n:0});$("gText").value="";$("gTarget").value="";store(GK,goals);renderGoals()}
+$("gAdd").onclick=addGoal;$("gText").addEventListener("keydown",function(e){if(e.key==="Enter")addGoal()});
+var tPre=25,tLeft=1500,tEnd=0,tId=0;
+function showT(){$("tdisp").textContent=pad(Math.floor(tLeft/60))+":"+pad(tLeft%60)}
+function tStop(){clearInterval(tId);tId=0}
+function tSet(m){tStop();tPre=m;tLeft=m*60;$("tStart").textContent="Start";$("tmsg").textContent="";showT()}
+[25,15,5].forEach(function(m){$("tpre").appendChild(btn("clear",m+" min",m+" minute timer",function(){tSet(m)}))});
+$("tStart").onclick=function(){
+  if(tId){tLeft=Math.max(0,Math.round((tEnd-Date.now())/1000));tStop();$("tStart").textContent="Resume";showT();return}
+  if(!tLeft)tLeft=tPre*60;
+  tEnd=Date.now()+tLeft*1000;$("tStart").textContent="Pause";$("tmsg").textContent="";
+  tId=setInterval(function(){tLeft=Math.max(0,Math.round((tEnd-Date.now())/1000));showT();if(!tLeft){tStop();$("tStart").textContent="Start";$("tmsg").textContent="Time’s up."}},250)};
+$("tReset").onclick=function(){tSet(tPre)};
+tSet(25);
+var NK="aiden-planner-notes";try{$("notes").value=localStorage.getItem(NK)||""}catch(e){}
+$("notes").addEventListener("input",function(){try{localStorage.setItem(NK,$("notes").value)}catch(e){}});
+var THK="aiden-planner-theme";
+function setTheme(n){document.documentElement.setAttribute("data-theme",n);try{localStorage.setItem(THK,n)}catch(e){}Array.prototype.forEach.call($("themes").children,function(b){b.setAttribute("aria-pressed",b.dataset.t===n?"true":"false")})}
+["gray","charcoal","light"].forEach(function(n){var b=btn("mood",n.charAt(0).toUpperCase()+n.slice(1),"Theme: "+n,function(){setTheme(n)});b.dataset.t=n;$("themes").appendChild(b)});
+var th="gray";try{th=localStorage.getItem(THK)||"gray"}catch(e){}setTheme(th);
+$("bkExp").onclick=function(){$("bk").value=JSON.stringify({todos:todos,entries:entries,events:events,habits:habits,goals:goals,notes:$("notes").value});$("bk").select();$("bkmsg").textContent="Copy this text and keep it somewhere safe."};
+$("bkImp").onclick=function(){try{var o=JSON.parse($("bk").value);
+  if(Array.isArray(o.todos))todos=o.todos;if(Array.isArray(o.entries))entries=o.entries;if(Array.isArray(o.events))events=o.events;if(Array.isArray(o.habits))habits=o.habits;if(Array.isArray(o.goals))goals=o.goals;
+  if(typeof o.notes==="string")$("notes").value=o.notes;
+  store(TK,todos);store(JK,entries);store(EK,events);store(HK,habits);store(GK,goals);try{localStorage.setItem(NK,$("notes").value)}catch(e){}
+  renderCal();renderTodos();renderEntries();renderHab();renderGoals();$("bkmsg").textContent="Imported."}catch(e){$("bkmsg").textContent="That doesn’t look like a backup."}};
+$("filt").onchange=renderTodos;$("jsearch").addEventListener("input",renderEntries);
+renderHab();renderGoals();
 renderCal();
 renderTodos();renderEntries();
 })();
